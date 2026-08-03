@@ -7,5 +7,5 @@ enum class Move {
     PROTECT,
     SWORDS_DANCE,
     TOXIC,
-    SUBSTITUTE
+    SUBSTITUTE,
 }

@@ -11,29 +11,19 @@ import kotlin.reflect.KClass
 
 data class PokemonState(
     val species: Species,
-
     var hp: Int,
-
     val maxHp: Int,
-
     var stats: StatState,
-
     var status: StatusState,
-
     val moves: MutableList<MoveState>,
-
     var item: ItemState,
-
     var ability: AbilityState,
-
-    private val volatileStatuses: MutableList<VolatileStatusState> = mutableListOf()
+    private val volatileStatuses: MutableList<VolatileStatusState> = mutableListOf(),
 ) {
-
-    fun hasVolatile(statusClass: KClass<out VolatileStatusState>): Boolean {
-        return volatileStatuses.any {
+    fun hasVolatile(statusClass: KClass<out VolatileStatusState>): Boolean =
+        volatileStatuses.any {
             it::class == statusClass
         }
-    }
 
     fun addVolatile(status: VolatileStatusState) {
         if (!hasVolatile(status::class)) {
@@ -47,7 +37,5 @@ data class PokemonState(
         }
     }
 
-    fun getVolatileStatuses(): List<VolatileStatusState> {
-        return volatileStatuses
-    }
+    fun getVolatileStatuses(): List<VolatileStatusState> = volatileStatuses
 }

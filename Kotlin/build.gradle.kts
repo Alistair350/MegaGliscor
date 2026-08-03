@@ -34,9 +34,10 @@ dependencies {
 application {
     mainClass.set("MainKt")
 
-    applicationDefaultJvmArgs = listOf(
-        "--enable-native-access=ALL-UNNAMED"
-    )
+    applicationDefaultJvmArgs =
+        listOf(
+            "--enable-native-access=ALL-UNNAMED",
+        )
 }
 
 kotlin {
@@ -61,7 +62,7 @@ tasks.register<Exec>("buildRust") {
     commandLine(
         "/Users/jayden/.cargo/bin/cargo",
         "build",
-        "--release"
+        "--release",
     )
 }
 
@@ -84,7 +85,7 @@ tasks.register<Exec>("generateUniFFI") {
         "--language",
         "kotlin",
         "--out-dir",
-        "bindings-out"
+        "bindings-out",
     )
 }
 
@@ -99,6 +100,6 @@ tasks.register<Exec>("launchBot") {
 
     commandLine(
         "bash",
-        "${project.buildDir}/install/${project.name}/bin/${project.name}"
+        "${project.buildDir}/install/${project.name}/bin/${project.name}",
     )
 }

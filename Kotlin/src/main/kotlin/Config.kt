@@ -1,10 +1,11 @@
 import io.github.cdimascio.dotenv.dotenv
 
 object Config {
-    private val env = dotenv {
-        directory = "/Users/jayden/Documents/MegaGliscor"
-        filename = "dev.env"
-    }
+    private val env =
+        dotenv {
+            directory = "/Users/jayden/Documents/MegaGliscor/env"
+            filename = "dev.env"
+        }
 
     val username = env["PS_USERNAME"] ?: error("USERNAME not found in environment variables")
     val password = env["PS_PASSWORD"] ?: error("PASSWORD not found in env variables")
