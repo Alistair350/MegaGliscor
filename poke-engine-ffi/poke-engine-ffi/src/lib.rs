@@ -96,6 +96,7 @@ pub fn legal_options(state_str: String) -> Vec<Vec<String>> {
     ]
 }
 
+
 // basic test case
 #[uniffi::export]
 pub fn test_connection() -> String {

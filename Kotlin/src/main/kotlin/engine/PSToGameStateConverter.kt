@@ -5,6 +5,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.boolean
 import states.GameState
 import states.PokemonState
 import states.fieldstates.SharedFieldState
@@ -69,18 +70,23 @@ class PSToGameStateConverter {
             )
         }
 
+        var detectedActiveIndex = 0
         val team = pokemonArray.mapIndexed { index, pkmnJson ->
-            val activeMoveData = if (isOurSide && index == 0) {
+            val p = pkmnJson.jsonObject
+            if (p["active"]?.jsonPrimitive?.boolean == true) {
+                detectedActiveIndex = index
+            }
+            val activeMoveData = if (isOurSide && index == detectedActiveIndex) {
                 activeJson.getOrNull(0)?.jsonObject
             } else {
                 null
             }
-            convertPokemon(pkmnJson.jsonObject, activeMoveData)
+            convertPokemon(p, activeMoveData)
         }.toMutableList()
 
         return SideState(
             team = team,
-            activeIndex = 0
+            activeIndex = detectedActiveIndex
         )
     }
 
@@ -94,7 +100,6 @@ class PSToGameStateConverter {
         val details = pkmnJson["details"]?.jsonPrimitive?.content ?: "unknown"
         val condition = pkmnJson["condition"]?.jsonPrimitive?.content ?: "0/0"
         val stats = pkmnJson["stats"]?.jsonObject ?: JsonObject(emptyMap())
-        val moves = pkmnJson["moves"]?.jsonArray ?: JsonArray(emptyList())
         val ability = pkmnJson["ability"]?.jsonPrimitive?.content ?: "NONE"
         val item = pkmnJson["item"]?.jsonPrimitive?.content ?: "NONE"
         val statusStr = pkmnJson["status"]?.jsonPrimitive?.content ?: "None"
@@ -115,8 +120,26 @@ class PSToGameStateConverter {
         val spd = stats["spd"]?.jsonPrimitive?.content?.toIntOrNull() ?: 100
         val spe = stats["spe"]?.jsonPrimitive?.content?.toIntOrNull() ?: 100
 
-        // Convert moves - use Unknown placeholder for now
-        val moveList = (0 until 4).map { MoveState.Unknown as MoveState }.toMutableList()
+        // Determine which source provides move details: activeMoveData may contain rich objects.
+        val movesArray = activeMoveData?.get("moves")?.jsonArray ?: pkmnJson["moves"]?.jsonArray ?: JsonArray(emptyList())
+
+        // Convert moves into MoveState.KnownByName (supports both object entries and primitive names)
+        val moveList = movesArray.map { moveElem ->
+            if (moveElem is kotlinx.serialization.json.JsonObject) {
+                val move = moveElem
+                val moveNameRaw = move["move"]?.jsonPrimitive?.content ?: move["id"]?.jsonPrimitive?.content ?: "NONE"
+                val moveName = moveNameRaw.uppercase().replace(" ", "")
+                val pp = move["pp"]?.jsonPrimitive?.content?.toIntOrNull() ?: 0
+                val maxpp = move["maxpp"]?.jsonPrimitive?.content?.toIntOrNull() ?: pp
+                val disabled = move["disabled"]?.jsonPrimitive?.content?.toBoolean() ?: false
+                MoveState.KnownByName(name = moveName, currentPP = pp, maxPP = maxpp, disabled = disabled) as MoveState
+            } else {
+                val moveNameRaw = moveElem.toString().trim('"')
+                val moveName = moveNameRaw.uppercase().replace(" ", "")
+                // For bench Pokémon, we don't have PP data. Default to max PP (35 is typical for most moves)
+                MoveState.KnownByName(name = moveName, currentPP = 35, maxPP = 35, disabled = false) as MoveState
+            }
+        }.toMutableList()
 
         // Extract boosts if this is our active Pokémon
         val boosts = if (activeMoveData != null) {

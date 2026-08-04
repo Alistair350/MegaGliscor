@@ -1,5 +1,6 @@
 package battle
 
+import engine.PokeEngineWrapper
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -12,7 +13,6 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import protocol.PSMessage
-import engine.PokeEngineWrapper
 
 class BattleHandler(
     val roomId: String,
@@ -256,13 +256,13 @@ class BattleHandler(
      */
     private suspend fun sendChoice(choice: String) {
         val id = rqid?.toString() ?: ""
-        // PS accepts: >roomid\n|/choose move 1
+        // PS accepts: roomid|/choose move 1
         // The rqid is optional but good practice.
         val payload =
             if (id.isNotEmpty()) {
-                ">$roomId\n|/choose $choice|$id"
+                "$roomId|/choose $choice|$id"
             } else {
-                ">$roomId\n|/choose $choice"
+                "$roomId|/choose $choice"
             }
         send(payload)
         LoggerConfigs.generalLogger.i { "Battle $roomId — sent: $choice (rqid=$rqid)" }

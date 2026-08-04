@@ -73,14 +73,21 @@ object MessageDistributor {
 
     /**
      * Registers a room so future battle messages can be delivered to its channel.
+     * If the room is already registered, the existing channel is returned.
+     * This is important because or else the auto-discovery system and normal battle registration would create two channels.
      *
      * @param roomId The room identifier to register.
      * @return The channel associated with the room.
      */
     fun registerRoom(roomId: String): Channel<PSMessage.RoomMessage> {
-        val channel = Channel<PSMessage.RoomMessage>(capacity = Channel.BUFFERED)
-        roomChannels[roomId] = channel
-        return channel
+        val newChannel = Channel<PSMessage.RoomMessage>(capacity = Channel.BUFFERED)
+        val existing = roomChannels.putIfAbsent(roomId, newChannel)
+        return if (existing != null) {
+            newChannel.close() // don't leak it
+            existing
+        } else {
+            newChannel
+        }
     }
 
     /**

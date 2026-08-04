@@ -48,6 +48,16 @@ kotlin {
             kotlin.srcDir("../poke-engine-ffi/bindings-out")
         }
     }
+
+    // Add a debug runner to execute small local tests without launching the bot
+    tasks.register<JavaExec>("runDebugState") {
+        group = "verification"
+        description = "Run the debug state serializer main"
+        mainClass.set("engine.DebugMainKt")
+        // Use assembled output + runtime configuration to form classpath
+        classpath = files("${project.buildDir}/classes/kotlin/main", "${project.buildDir}/resources/main") + configurations["runtimeClasspath"]
+        dependsOn("assemble")
+    }
 }
 
 tasks.test {

@@ -41,13 +41,38 @@ class GameStateToPokeEngineConverter {
 
         val pokemonStrs = allPokemon.take(6).map { convertPokemon(it) }
 
-        val activeIndex = side.activeIndex
+        var activeIndex = side.activeIndex
+        if (activeIndex !in 0..5) {
+            LoggerConfigs.generalLogger.w { "Active index $activeIndex out of range; clamping to 0. Side team size=${side.team.size}" }
+            activeIndex = 0
+        }
 
         // Side conditions (19 fields, all zeros for now)
         val sideConditionsStr = (0 until 19).joinToString(";") { "0" }
 
+        // Volatile statuses bitstring (empty)
+        val vsString = ""
+
+        // Volatile durations (6 fields: confusion, encore, lockedmove, slowstart, taunt, yawn)
+        val volatileDurationsStr = "0;0;0;0;0;0"
+
+        // Substitute health and boosts
+        val substituteHealth = "0"
+        val attackBoost = "0"
+        val defenseBoost = "0"
+        val spAttackBoost = "0"
+        val spDefenseBoost = "0"
+        val speedBoost = "0"
+        val accuracyBoost = "0"
+        val evasionBoost = "0"
+
         // Wishes (2 fields: wish_turns, wish_hp)
-        val wisheStr = "0=0="
+        val wishTurns = "0"
+        val wishHp = "0"
+
+        // Future sight fields
+        val futureSightTurns = "0"
+        val futureSightTarget = "0"
 
         // Status fields
         val forceSwitch = "false"
@@ -58,9 +83,36 @@ class GameStateToPokeEngineConverter {
         val lastUsedMove = "switch:0"
         val slowUturn = "false"
 
-        val statusStr = "$forceSwitch=$savedMove=$baton=$shedTail=$forceTrapped=$lastUsedMove=$slowUturn"
+        // Diagnostics
+        LoggerConfigs.generalLogger.d { "Serialized side: pokemonCount=${pokemonStrs.size}, activeIndex=$activeIndex, sideConditionsCount=${sideConditionsStr.split(';').size}" }
 
-        return pokemonStrs.joinToString("=") + "=$activeIndex=$sideConditionsStr=$wisheStr$statusStr"
+        val parts = mutableListOf<String>()
+        parts.addAll(pokemonStrs)
+        parts.add(activeIndex.toString())
+        parts.add(sideConditionsStr)
+        parts.add(vsString)
+        parts.add(volatileDurationsStr)
+        parts.add(substituteHealth)
+        parts.add(attackBoost)
+        parts.add(defenseBoost)
+        parts.add(spAttackBoost)
+        parts.add(spDefenseBoost)
+        parts.add(speedBoost)
+        parts.add(accuracyBoost)
+        parts.add(evasionBoost)
+        parts.add(wishTurns)
+        parts.add(wishHp)
+        parts.add(futureSightTurns)
+        parts.add(futureSightTarget)
+        parts.add(forceSwitch)
+        parts.add(savedMove)
+        parts.add(baton)
+        parts.add(shedTail)
+        parts.add(forceTrapped)
+        parts.add(lastUsedMove)
+        parts.add(slowUturn)
+
+        return parts.joinToString("=")
     }
 
     /**
@@ -94,8 +146,22 @@ class GameStateToPokeEngineConverter {
             states.pokemonstates.Status.NONE -> "None"
         }
 
-        // Moves (pad to 4, use placeholders)
-        val moveStrs = (0 until 4).map { "NONE;false;0" }
+        // Moves: prefer actual move names when available
+        // Helper to normalize PS move names into engine Choices-style identifiers
+        fun normalizeToEngineChoice(name: String): String {
+            val cleaned = name.filter { it.isLetterOrDigit() }.uppercase()
+            // Prefer exact engine choice if available
+            return if (EngineChoices.VALID.contains(cleaned)) cleaned else cleaned
+        }
+
+        val moveStrs = (0 until 4).map { idx ->
+            val mv = pokemon.moves.getOrNull(idx)
+            when (mv) {
+                is states.pokemonstates.MoveState.KnownByName -> "${normalizeToEngineChoice(mv.name)};${mv.disabled};${mv.currentPP}"
+                is states.pokemonstates.MoveState.Known -> "${normalizeToEngineChoice(mv.move.name)};${mv.disabled};${mv.currentPP}"
+                else -> "NONE;false;0"
+            }
+        }
 
         val speciesName = pokemon.species.name.lowercase()
 

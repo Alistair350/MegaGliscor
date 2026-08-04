@@ -25,7 +25,7 @@ object PSParser {
      * @return The parsed PS message.
      */
     fun parse(batch: String): PSMessage {
-        val lines = batch.split("\n")
+        val lines = batch.split("\n").map { it.removeSuffix("\r") }
         val first = lines.firstOrNull()?.trim() ?: return PSMessage.GlobalMessage(emptyList(), batch)
 
         return if (first.startsWith(">")) {

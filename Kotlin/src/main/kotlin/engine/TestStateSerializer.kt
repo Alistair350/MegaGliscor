@@ -5,6 +5,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.Json
 import uniffi.poke_engine_ffi.debugRoundtripState
 import uniffi.poke_engine_ffi.legalOptions
+// import uniffi.poke_engine_ffi.debugPrettyPrintState  // TODO: fix JNA loading after rebuild
 
 /**
  * Quick test utility to verify state serialization works end-to-end.
@@ -29,11 +30,19 @@ object TestStateSerializer {
             val stateStr = stateSerializer.convert(gameState)
             println("✓ Serialized GameState to poke-engine format")
             println("  State string length: ${stateStr.length}")
-            
+            println("  State string (truncated to 800 chars):\n" + stateStr.take(800))
+            // Save full state string to temp file for inspection
+            try {
+                java.io.File("/tmp/poke_engine_state.txt").writeText(stateStr)
+                println("  Full state string written to /tmp/poke_engine_state.txt")
+            } catch (ioe: Exception) {
+                println("  Failed to write state string to /tmp: ${ioe.message}")
+            }
+
             // Test round-trip
             val roundTrippedStr = debugRoundtripState(stateStr)
             println("✓ Round-trip successful")
-            
+
             // Get legal options
             val options = legalOptions(stateStr)
             println("✓ Legal options retrieved")
@@ -41,7 +50,12 @@ object TestStateSerializer {
             if (options.size > 1) {
                 println("  Side 2 options: ${options[1]}")
             }
-            
+
+            // Debug: pretty-print deserialized state to see what the engine parsed
+            // TODO: fix JNA symbol loading for new FFI functions after rebuild
+            println("\n=== Deserialized State Debug ===")
+            println("(Debug helper temporarily disabled - JNA symbol loading issue)")
+
             println("\n✓ All tests passed!")
             
         } catch (e: Exception) {
