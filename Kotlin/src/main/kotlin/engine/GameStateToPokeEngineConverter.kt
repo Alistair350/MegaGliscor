@@ -84,7 +84,11 @@ class GameStateToPokeEngineConverter {
         val slowUturn = "false"
 
         // Diagnostics
-        LoggerConfigs.generalLogger.d { "Serialized side: pokemonCount=${pokemonStrs.size}, activeIndex=$activeIndex, sideConditionsCount=${sideConditionsStr.split(';').size}" }
+        LoggerConfigs.generalLogger.d {
+            "Serialized side: pokemonCount=${pokemonStrs.size}, activeIndex=$activeIndex, sideConditionsCount=${sideConditionsStr.split(
+                ';',
+            ).size}"
+        }
 
         val parts = mutableListOf<String>()
         parts.addAll(pokemonStrs)
@@ -121,7 +125,7 @@ class GameStateToPokeEngineConverter {
      * Format:
      * name,level,type1,type2,base_type1,base_type2,hp,maxhp,ability,base_ability,item,nature,evs,
      * atk,def,spa,spd,spe,status,rest_turns,sleep_turns,weight_kg,
-     * m0,m1,m2,m3,terastallized,tera_type
+     * m0,m1,m2,m3,terastallized,mega_evolved,tera_type
      */
     private fun convertPokemon(pokemon: PokemonState): String {
         // For now, use placeholder values we don't have from GameState
@@ -135,16 +139,17 @@ class GameStateToPokeEngineConverter {
         val sleepTurns = 0
 
         // Convert status to poke-engine format
-        val statusStr = when (pokemon.status.status) {
-            states.pokemonstates.Status.BURN -> "Burn"
-            states.pokemonstates.Status.POISON -> "Poison"
-            states.pokemonstates.Status.TOXIC -> "Toxic"
-            states.pokemonstates.Status.PARALYSIS -> "Paralysis"
-            states.pokemonstates.Status.SLEEP -> "Sleep"
-            states.pokemonstates.Status.FREEZE -> "Freeze"
-            states.pokemonstates.Status.REST -> "Rest"
-            states.pokemonstates.Status.NONE -> "None"
-        }
+        val statusStr =
+            when (pokemon.status.status) {
+                states.pokemonstates.Status.BURN -> "Burn"
+                states.pokemonstates.Status.POISON -> "Poison"
+                states.pokemonstates.Status.TOXIC -> "Toxic"
+                states.pokemonstates.Status.PARALYSIS -> "Paralysis"
+                states.pokemonstates.Status.SLEEP -> "Sleep"
+                states.pokemonstates.Status.FREEZE -> "Freeze"
+                states.pokemonstates.Status.REST -> "Rest"
+                states.pokemonstates.Status.NONE -> "None"
+            }
 
         // Moves: prefer actual move names when available
         // Helper to normalize PS move names into engine Choices-style identifiers
@@ -154,14 +159,15 @@ class GameStateToPokeEngineConverter {
             return if (EngineChoices.VALID.contains(cleaned)) cleaned else cleaned
         }
 
-        val moveStrs = (0 until 4).map { idx ->
-            val mv = pokemon.moves.getOrNull(idx)
-            when (mv) {
-                is states.pokemonstates.MoveState.KnownByName -> "${normalizeToEngineChoice(mv.name)};${mv.disabled};${mv.currentPP}"
-                is states.pokemonstates.MoveState.Known -> "${normalizeToEngineChoice(mv.move.name)};${mv.disabled};${mv.currentPP}"
-                else -> "NONE;false;0"
+        val moveStrs =
+            (0 until 4).map { idx ->
+                val mv = pokemon.moves.getOrNull(idx)
+                when (mv) {
+                    is states.pokemonstates.MoveState.KnownByName -> "${normalizeToEngineChoice(mv.name)};${mv.disabled};${mv.currentPP}"
+                    is states.pokemonstates.MoveState.Known -> "${normalizeToEngineChoice(mv.move.name)};${mv.disabled};${mv.currentPP}"
+                    else -> "NONE;false;0"
+                }
             }
-        }
 
         val speciesName = pokemon.species.name.lowercase()
 
@@ -175,12 +181,12 @@ class GameStateToPokeEngineConverter {
             append("${pokemon.stats.statBoosts.get(states.pokemonstates.Stat.SPEED)},")
             append("$statusStr,$restTurns,$sleepTurns,$weight,")
             append(moveStrs.joinToString(",") + ",")
-            append("false,Normal")
+            append("false,false,Normal")
         }
     }
 
-    private fun createEmptyPokemon(): PokemonState {
-        return PokemonState(
+    private fun createEmptyPokemon(): PokemonState =
+        PokemonState(
             species = states.pokemonstates.Species.UNKNOWN,
             hp = 0,
             maxHp = 1,
@@ -188,7 +194,6 @@ class GameStateToPokeEngineConverter {
             status = states.pokemonstates.StatusState(states.pokemonstates.Status.NONE, null),
             moves = mutableListOf(),
             item = states.pokemonstates.UnknownItem as states.pokemonstates.ItemState,
-            ability = states.pokemonstates.UnknownAbility as states.pokemonstates.AbilityState
+            ability = states.pokemonstates.UnknownAbility as states.pokemonstates.AbilityState,
         )
-    }
 }

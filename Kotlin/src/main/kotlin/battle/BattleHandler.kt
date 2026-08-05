@@ -113,29 +113,8 @@ class BattleHandler(
                     handlePlayer(parts)
                 }
 
-                "turn" -> {
-                    handleTurn(parts)
-                }
-
-                "move" -> {
-                    handleMove(parts)
-                }
-
-                "switch" -> {
-                    handleSwitch(parts)
-                }
-
-                "drag" -> {
-                    handleSwitch(parts)
-                }
-
-                // forced switch looks like switch
-                "request" -> {
-                    handleRequest(parts)
-                }
-
-                "faint" -> {
-                    handleFaint(parts)
+                "turn", "move", "switch", "drag", "request", "faint" -> {
+                    handleBattleUpdate(parts)
                 }
 
                 "win", "tie", "expire", "deinit" -> {
@@ -163,35 +142,59 @@ class BattleHandler(
 
     private fun handleInit(parts: List<String>) {
         val type = parts.getOrNull(2) ?: "unknown"
-        LoggerConfigs.generalLogger.i { "Battle $roomId initialized (type: $type)" }
+        LoggerConfigs.battleLogger.i { "Battle $roomId initialized (type: $type)" }
     }
 
     private fun handlePlayer(parts: List<String>) {
         val slot = parts.getOrNull(2) ?: return
         val name = parts.getOrNull(3) ?: return
-        LoggerConfigs.generalLogger.i { "Battle $roomId — $slot = $name" }
+        LoggerConfigs.battleLogger.i { "Battle $roomId — $slot = $name" }
+    }
+
+    private suspend fun handleBattleUpdate(parts: List<String>) {
+        when (val action = parts.getOrNull(1) ?: return) {
+            "turn" -> {
+                handleTurn(parts)
+            }
+
+            "move" -> {
+                handleMove(parts)
+            }
+
+            "switch", "drag" -> {
+                handleSwitch(parts)
+            }
+
+            "request" -> {
+                handleRequest(parts)
+            }
+
+            "faint" -> {
+                handleFaint(parts)
+            }
+        }
     }
 
     private fun handleTurn(parts: List<String>) {
         val turn = parts.getOrNull(2)?.toIntOrNull() ?: return
-        LoggerConfigs.generalLogger.i { "Battle $roomId — Turn $turn" }
+        LoggerConfigs.battleLogger.i { "Battle $roomId — Turn $turn" }
     }
 
     private fun handleMove(parts: List<String>) {
         val pokemon = parts.getOrNull(2) ?: return
         val move = parts.getOrNull(3) ?: return
-        LoggerConfigs.generalLogger.i { "Battle $roomId — $pokemon used $move" }
+        LoggerConfigs.battleLogger.i { "Battle $roomId — $pokemon used $move" }
     }
 
     private fun handleSwitch(parts: List<String>) {
         val pokemon = parts.getOrNull(2) ?: return
         val details = parts.getOrNull(3) ?: return
-        LoggerConfigs.generalLogger.i { "Battle $roomId — $pokemon switched in ($details)" }
+        LoggerConfigs.battleLogger.i { "Battle $roomId — $pokemon switched in ($details)" }
     }
 
     private fun handleFaint(parts: List<String>) {
         val pokemon = parts.getOrNull(2) ?: return
-        LoggerConfigs.generalLogger.i { "Battle $roomId — $pokemon fainted" }
+        LoggerConfigs.battleLogger.i { "Battle $roomId — $pokemon fainted" }
     }
 
     /**
@@ -203,7 +206,7 @@ class BattleHandler(
 
         // Empty request = "wait for opponent", clear state
         if (jsonStr.isNullOrBlank()) {
-            LoggerConfigs.generalLogger.d { "Battle $roomId — empty request (waiting)" }
+            LoggerConfigs.battleLogger.d { "Battle $roomId — empty request (waiting)" }
             return
         }
 
@@ -212,7 +215,7 @@ class BattleHandler(
 
         val wait = request["wait"]?.jsonPrimitive?.boolean == true
         if (wait) {
-            LoggerConfigs.generalLogger.i { "Battle $roomId — waiting for opponent" }
+            LoggerConfigs.battleLogger.i { "Battle $roomId — waiting for opponent" }
             return
         }
 
@@ -222,25 +225,25 @@ class BattleHandler(
 
         when {
             teamPreview -> {
-                LoggerConfigs.generalLogger.i { "Battle $roomId — team preview" }
+                LoggerConfigs.battleLogger.i { "Battle $roomId — team preview" }
                 // Default: keep current order. Replace with engine later.
                 sendChoice("team 123456")
             }
 
             forceSwitch != null -> {
-                LoggerConfigs.generalLogger.i { "Battle $roomId — force switch required" }
+                LoggerConfigs.battleLogger.i { "Battle $roomId — force switch required" }
                 // Default: switch to slot 2. Replace with engine later.
                 sendChoice("switch 2")
             }
 
             active != null -> {
-                LoggerConfigs.generalLogger.i { "Battle $roomId — move request (${active.size} active)" }
+                LoggerConfigs.battleLogger.i { "Battle $roomId — move request (${active.size} active)" }
                 // Use poke-engine MCTS to find the best move
                 val bestChoice = engine.getBestMove(request)
                 if (bestChoice != null) {
                     sendChoice(bestChoice)
                 } else {
-                    LoggerConfigs.generalLogger.w { "Engine failed to find best move, defaulting to move 1" }
+                    LoggerConfigs.battleLogger.w { "Engine failed to find best move, defaulting to move 1" }
                     sendChoice("move 1")
                 }
             }
@@ -265,11 +268,11 @@ class BattleHandler(
                 "$roomId|/choose $choice"
             }
         send(payload)
-        LoggerConfigs.generalLogger.i { "Battle $roomId — sent: $choice (rqid=$rqid)" }
+        LoggerConfigs.battleLogger.i { "Battle $roomId — sent: $choice (rqid=$rqid)" }
     }
 
     private suspend fun handleBattleEnd(reason: String) {
-        LoggerConfigs.generalLogger.i { "Battle $roomId ended ($reason)" }
+        LoggerConfigs.battleLogger.i { "Battle $roomId ended ($reason)" }
         job.cancel()
     }
 

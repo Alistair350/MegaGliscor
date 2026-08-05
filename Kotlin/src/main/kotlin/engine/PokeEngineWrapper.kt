@@ -45,7 +45,9 @@ class PokeEngineWrapper {
             val side1Pieces = parts[0].split("=")
             val side2Pieces = parts[1].split("=")
             if (side1Pieces.size < 7 || side2Pieces.size < 7) {
-                LoggerConfigs.generalLogger.e { "Invalid state string: each side must contain 6 pokemons and an active index (s1=${side1Pieces.size}, s2=${side2Pieces.size})" }
+                LoggerConfigs.generalLogger.e {
+                    "Invalid state string: each side must contain 6 pokemons and an active index (s1=${side1Pieces.size}, s2=${side2Pieces.size})"
+                }
                 return null
             }
             val activeIndex1 = side1Pieces.getOrNull(6)?.toIntOrNull() ?: -1
@@ -54,6 +56,8 @@ class PokeEngineWrapper {
                 LoggerConfigs.generalLogger.e { "Invalid active index in serialized state (s1=$activeIndex1, s2=$activeIndex2)" }
                 return null
             }
+
+            LoggerConfigs.battleLogger.i { "Passed in state str: $stateStr" }
 
             // Validate state string by round-tripping it
             val roundTrippedStr = debugRoundtripState(stateStr)
@@ -108,11 +112,12 @@ class PokeEngineWrapper {
             // Search active moves for a matching KnownByName or Known move name
             val active = gameState.mySide.activePokemon()
             active.moves.forEachIndexed { idx, mv ->
-                val candidate = when (mv) {
-                    is states.pokemonstates.MoveState.KnownByName -> mv.name
-                    is states.pokemonstates.MoveState.Known -> mv.move.name
-                    else -> null
-                }
+                val candidate =
+                    when (mv) {
+                        is states.pokemonstates.MoveState.KnownByName -> mv.name
+                        is states.pokemonstates.MoveState.Known -> mv.move.name
+                        else -> null
+                    }
                 if (candidate != null) {
                     val candNorm = candidate.filter { it.isLetterOrDigit() }.uppercase()
                     if (candNorm == norm || candNorm.contains(norm) || norm.contains(candNorm)) {
