@@ -1,3 +1,5 @@
+package config
+
 import co.touchlab.kermit.Logger
 
 object LoggerConfigs {

@@ -1,5 +1,6 @@
 package engine
 
+import config.LoggerConfigs
 import kotlinx.serialization.json.JsonObject
 import uniffi.poke_engine_ffi.bestMoveMcts
 import uniffi.poke_engine_ffi.debugRoundtripState
@@ -61,20 +62,22 @@ class PokeEngineWrapper {
 
             // Validate state string by round-tripping it
             val roundTrippedStr = debugRoundtripState(stateStr)
-            LoggerConfigs.generalLogger.d { "State round-trip successful" }
+            LoggerConfigs.battleLogger.d { "State round-trip successful" }
 
             // Get legal options to verify correctness
             val legalOptions = legalOptions(stateStr)
-            LoggerConfigs.generalLogger.d { "Legal options for side 1: ${legalOptions[0]}" }
+            LoggerConfigs.battleLogger.d { "Legal options for side 1: ${legalOptions[0]}" }
 
             // Run MCTS search
             val searchResult = bestMoveMcts(stateStr, timeMsForSearch.toULong(), 0U)
-            LoggerConfigs.generalLogger.i { "MCTS completed: ${searchResult.iterations} iterations, ${searchResult.sideOne.size} options" }
+            LoggerConfigs.battleLogger.i { "MCTS completed: ${searchResult.iterations} iterations, ${searchResult.sideOne.size} options" }
+            LoggerConfigs.battleLogger.i { "Side One Results: ${searchResult.sideOne.joinToString(", ")}" }
+            LoggerConfigs.battleLogger.i { "Side Two Results: ${searchResult.sideTwo.joinToString(", ")}" }
 
             // Find best move (highest average score)
             val bestOption = searchResult.sideOne.maxByOrNull { it.averageScore }
             if (bestOption != null) {
-                LoggerConfigs.generalLogger.i {
+                LoggerConfigs.battleLogger.i {
                     "Best move: ${bestOption.moveChoice} (score: ${bestOption.averageScore}, visits: ${bestOption.visits})"
                 }
                 convertEngineChoiceToPS(bestOption.moveChoice, gameState)

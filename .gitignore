@@ -54,4 +54,4 @@ Cargo.lock
 
 # Secerts
 env/
-*.env
+*.setup

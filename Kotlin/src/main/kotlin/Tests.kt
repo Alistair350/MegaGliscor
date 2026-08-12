@@ -1,4 +1,4 @@
-import LoggerConfigs.rustBindingLogger
+import config.LoggerConfigs.rustBindingLogger
 import uniffi.poke_engine_ffi.testConnection
 
 object Tests {

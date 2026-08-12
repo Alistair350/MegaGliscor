@@ -1,3 +1,5 @@
+package config
+
 import io.github.cdimascio.dotenv.dotenv
 
 object Config {

@@ -1,5 +1,6 @@
 package battle
 
+import config.LoggerConfigs
 import engine.PokeEngineWrapper
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -109,6 +110,10 @@ class BattleHandler(
                     handleInit(parts)
                 }
 
+                "poke" -> {
+                    handlePokeInit(parts)
+                }
+
                 "player" -> {
                     handlePlayer(parts)
                 }
@@ -133,16 +138,23 @@ class BattleHandler(
         cmd: String,
         line: String,
     ) {
-        if (cmd in ignoredPrefixes) {
-            LoggerConfigs.websocketLogger.d { "[$roomId] ignored: $cmd" }
-        } else {
-            LoggerConfigs.websocketLogger.w { "[$roomId] unknown protocol: $line" }
-        }
+//        if (cmd in ignoredPrefixes) {
+//            config.LoggerConfigs.websocketLogger.d { "[$roomId] ignored: $cmd" }
+//        } else {
+        LoggerConfigs.websocketLogger.w { "[$roomId] unknown protocol: $line" }
+//        }
     }
 
     private fun handleInit(parts: List<String>) {
         val type = parts.getOrNull(2) ?: "unknown"
         LoggerConfigs.battleLogger.i { "Battle $roomId initialized (type: $type)" }
+    }
+
+    private fun handlePokeInit(parts: List<String>) {
+        val player = parts.getOrNull(2) ?: "unknown"
+        val mon = parts.getOrNull(3) ?: "unknown"
+        val item = parts.getOrNull(4) ?: "unknown"
+        LoggerConfigs.battleLogger.i { "[$roomId] Adding Pokemon $mon, $item, for $player" }
     }
 
     private fun handlePlayer(parts: List<String>) {

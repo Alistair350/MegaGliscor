@@ -1,12 +1,11 @@
 package protocol
 
 import BotPlayer
-import battle.BattleManager
+import config.LoggerConfigs
 import io.ktor.http.Parameters
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.boolean
-import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
@@ -120,5 +119,14 @@ object PSInterface {
      */
     suspend fun acceptChallenge(username: String) {
         WebsocketClient.sendMessage("|/accept $username")
+    }
+
+    /**
+     * Sets the team to be used based on the packed-string format
+     *
+     * @param teamString The packed-string representing the team to be used
+     */
+    suspend fun setTeam(teamString: String) {
+        WebsocketClient.sendMessage("|/utm $teamString")
     }
 }
