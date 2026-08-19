@@ -1,5 +1,8 @@
 # poke-engine + Kotlin (UniFFI) — Setup From Zero
 
+<details>
+<summary>Setup from scratch (macOS/Linux)</summary>
+
 This assumes you have **nothing** Rust-related installed yet. By the end
 you'll have a working `cdylib` wrapping `poke-engine`, Kotlin bindings
 generated, and a JVM project that can call into it.
@@ -9,10 +12,9 @@ generated, and a JVM project that can call into it.
 ## 0. Prerequisites check
 
 You need:
-- A JDK (11+) and Gradle — for the Kotlin side
+- JDK 24 and Gradle — for the Kotlin side
 - `git`
-- A C linker (comes with Xcode CLT on macOS, `build-essential` on Linux,
-  MSVC Build Tools on Windows)
+- A C linker (comes with Xcode CLT on macOS, `build-essential` on Linux)
 
 Check what you've got:
 
@@ -31,7 +33,7 @@ toolchain and rustup makes updating trivial):
 
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-source "$HOME/.cargo/setup"
+source "$HOME/.cargo/env"
 rustc --version
 ```
 
@@ -79,24 +81,18 @@ version = "0.1.0"
 edition = "2021"
 
 [lib]
+name = "poke_engine_ffi"
 crate-type = ["cdylib", "lib"]
 
 [dependencies]
-poke-engine = "0.0.47"
-uniffi = { version = "0.28", features = ["cli"] }
-
-[build-dependencies]
-uniffi = { version = "0.28", features = ["build"] }
+poke-engine = { version = "0.0.48", features = ["terastallization"] }
+uniffi = "0.32"
 ```
 
-Add a `build.rs` next to it:
+Start `src/lib.rs` with:
 
-```bash
-cat > poke-engine-ffi/build.rs << 'EOF'
-fn main() {
-    uniffi::generate_scaffolding("src/lib.rs").unwrap();
-}
-EOF
+```rust
+uniffi::setup_scaffolding!();
 ```
 
 (You'll fill in `src/lib.rs` with the `#[uniffi::export]` functions —
@@ -111,7 +107,7 @@ bindings in a multi-crate workspace (avoids version drift between the
 library's UniFFI version and the CLI tool's).
 
 ```bash
-cd ..
+cd .
 cargo new uniffi-bindgen
 ```
 
@@ -124,7 +120,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-uniffi = { version = "0.28", features = ["cli"] }
+uniffi = { version = "0.32", features = ["cli"] }
 
 [[bin]]
 name = "uniffi-bindgen"
@@ -154,7 +150,6 @@ its dependencies). If it succeeds you'll have:
 
 - Linux: `target/release/libpoke_engine_ffi.so`
 - macOS: `target/release/libpoke_engine_ffi.dylib`
-- Windows: `target/release/poke_engine_ffi.dll`
 
 ---
 
@@ -167,7 +162,7 @@ cargo run -p uniffi-bindgen -- generate \
   --out-dir bindings-out
 ```
 
-(swap `.so` for `.dylib`/`.dll` depending on your OS). You'll get:
+(swap `.so` for `.dylib` depending on your OS). You'll get:
 
 ```
 bindings-out/uniffi/poke_engine_ffi/poke_engine_ffi.kt
@@ -181,7 +176,7 @@ Back at the project root (`poke-bot/`):
 
 ```bash
 cd ..
-gradle init --type kotlin-application
+gradle init --type kotlin-application --no-split-project
 ```
 
 Add the JNA dependency to `build.gradle.kts` (plain JVM target — not
@@ -233,3 +228,87 @@ Worth saving that as `scripts/rebuild-ffi.sh` — you'll run it every time you
 touch the Rust side.
 
 ---
+
+</details>
+
+<details>
+<summary>Set up the environment for the existing repository (macOS/Linux)</summary>
+
+This assumes you have **nothing** Rust-related installed yet. By the end
+you'll have a working `cdylib` wrapping `poke-engine`, Kotlin bindings
+generated, and a JVM project that can call into it.
+
+---
+
+## 0. Prerequisites check
+
+You need:
+- JDK 24 and Gradle — for the Kotlin side
+- `git`
+- A C linker (comes with Xcode CLT on macOS, `build-essential` on Linux)
+
+Check what you've got:
+
+```bash
+java -version
+gradle -version   # or use ./gradlew once the project exists
+git --version
+```
+
+---
+
+## 1. Install Rust
+
+Use `rustup` (not your OS package manager — poke-engine needs a recent
+toolchain and rustup makes updating trivial):
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source "$HOME/.cargo/env"
+rustc --version
+```
+
+You need **1.80+** (poke-engine uses `LazyLock`). If `rustup` gave you
+something older:
+
+```bash
+rustup update stable
+rustup default stable
+```
+
+---
+
+## 2. First build (sanity check)
+
+From `poke-engine-ffi/`:
+
+```bash
+cargo build --release -p poke-engine-ffi
+```
+
+This will take a while the first time (pulling + compiling `poke-engine` and
+its dependencies). If it succeeds you'll have:
+
+- Linux: `target/release/libpoke_engine_ffi.so`
+- macOS: `target/release/libpoke_engine_ffi.dylib`
+
+---
+
+## 3. Generate Kotlin bindings
+
+```bash
+cargo run -p uniffi-bindgen -- generate \
+  --library target/release/libpoke_engine_ffi.so \
+  --language kotlin \
+  --out-dir bindings-out
+```
+
+(swap `.so` for `.dylib` depending on your OS). You'll get:
+
+```
+bindings-out/uniffi/poke_engine_ffi/poke_engine_ffi.kt
+```
+
+---
+
+</details>
